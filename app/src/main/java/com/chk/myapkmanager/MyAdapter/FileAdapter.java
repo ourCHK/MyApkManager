@@ -5,8 +5,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.chk.myapkmanager.Bean.MyFile;
+import com.chk.myapkmanager.MyInterface.MyItemClickListener;
 import com.chk.myapkmanager.R;
 
 import java.util.ArrayList;
@@ -20,7 +22,7 @@ public class FileAdapter extends RecyclerView.Adapter{
     static final int FILE = 1;
     ArrayList<MyFile> mMyFileList;
 
-
+    MyItemClickListener itemClickListener;
 
     public FileAdapter(ArrayList<MyFile> mMyFileList) {
         this.mMyFileList = mMyFileList;
@@ -40,7 +42,7 @@ public class FileAdapter extends RecyclerView.Adapter{
                 return folderHolder;
             case FILE:
                 View fileView  = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_item_file,parent,false);
-                FolderHolder fileHolder = new FolderHolder(fileView);
+                FileHolder fileHolder = new FileHolder(fileView);
                 return fileHolder;
             default:
                 return null;
@@ -53,13 +55,23 @@ public class FileAdapter extends RecyclerView.Adapter{
     }
 
     @Override
-    public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+    public void onBindViewHolder(RecyclerView.ViewHolder holder, final int position) {
         MyFile myFile = mMyFileList.get(position);
         if (holder instanceof FolderHolder) {
             ((FolderHolder) holder).folderName.setText(myFile.getFileName());
+            ((FolderHolder) holder).itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    itemClickListener.onClick(position);
+                }
+            });
         } else if (holder instanceof FileHolder) {
             ((FileHolder) holder).fileName.setText(myFile.getFileName());
         }
+    }
+
+    public void setItemClickListener(MyItemClickListener itemClickListener) {
+        this.itemClickListener = itemClickListener;
     }
 
     static class FolderHolder extends RecyclerView.ViewHolder {
