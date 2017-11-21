@@ -32,9 +32,14 @@ public class MainActivity extends AppCompatActivity {
     TextView textView;
 
     ArrayList<MyFile> mMyFileList = new ArrayList<>();
-    ArrayList<String> apkPaths = new ArrayList<>();
     ArrayList<String> fileList = new ArrayList<>();
-
+    ArrayList<String> apkPaths = new ArrayList<>();
+    ArrayList<String> rootPaths = new ArrayList<>();
+    String parentPath = null;
+    /**
+     * 层级，用于防止返回至根目录
+     */
+    int layer = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,18 +59,17 @@ public class MainActivity extends AppCompatActivity {
         mFileAdapter.setItemClickListener(new MyItemClickListener() {
             @Override
             public void onClick(int position) {
-                fileList.clear();
-                String originalFileName = mMyFileList.get(position).getOriginalName();
-                File file = new File(originalFileName);
-                File[] files = file.listFiles();
-                for (int i=0; i<files.length; i++) {
-                    fileList.add(files[i].getAbsolutePath());
-                }
-                pathToMyFile();
-                mFileAdapter.notifyDataSetChanged();
-//                Toast.makeText(MainActivity.this, "you click this", Toast.LENGTH_SHORT).show();
-                for (MyFile myFile:mMyFileList)
-                    Log.i(TAG+"itemclick",myFile.getOriginalName());
+//                fileList.clear();
+//                String originalFileName = mMyFileList.get(position).getOriginalName();
+//                parentPath = originalFileName;  //记录parent路径
+//                File file = new File(originalFileName);
+//                File[] files = file.listFiles();
+//                for (int i=0; i<files.length; i++) {
+//                    fileList.add(files[i].getAbsolutePath());
+//                }
+//                pathToMyFile();
+//                mFileAdapter.notifyDataSetChanged();
+                openFolder(mMyFileList.get(position).getOriginalName());
             }
         });
         fileRecyclerView = (RecyclerView) findViewById(R.id.fileRecyclerView);
@@ -88,7 +92,9 @@ public class MainActivity extends AppCompatActivity {
 //        }
 //    }
 
-
+    /**
+     * 获取存储的路径
+     */
     public void getAllCardPath() {
         fileList.clear();
         StorageManager sm = (StorageManager) getSystemService(STORAGE_SERVICE);
@@ -96,7 +102,10 @@ public class MainActivity extends AppCompatActivity {
             Method getVolumePaths = StorageManager.class.getMethod("getVolumePaths",null);
             String[] paths = (String[]) getVolumePaths.invoke(sm,null);
             for (String path:paths) {
-                fileList.add(path);
+                if (getStorageState(path).equals(Environment.MEDIA_MOUNTED)) {
+                    fileList.add(path);
+                    rootPaths.add(path);
+                }
             }
         } catch (NoSuchMethodException e) {
             e.printStackTrace();
@@ -157,7 +166,6 @@ public class MainActivity extends AppCompatActivity {
             case 1:
                 if (grantResults.length >0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-//                    listFile(getFirstCardPath());
                     updateMyFile();
                     Log.i(TAG,"permission granted successfully");
                 } else {
@@ -174,6 +182,9 @@ public class MainActivity extends AppCompatActivity {
         mFileAdapter.notifyDataSetChanged();
     }
 
+    /**
+     * 将String路劲转化为MyFile
+     */
     public void pathToMyFile() {
         mMyFileList.clear();
         for (int i=0; i<fileList.size(); i++) {
@@ -185,5 +196,48 @@ public class MainActivity extends AppCompatActivity {
             mMyFileList.add(myFile);
         }
     }
+
+    /**
+     * 打开给定路径的文件夹
+     * @param originalFileName 路径名
+     */
+    public void openFolder(String originalFileName) {
+        layer++;
+        fileList.clear();
+        File file = new File(originalFileName);
+        parentPath = file.getParent();  //记录parent路径
+        File[] files = file.listFiles();
+        for (int i=0; i<files.length; i++) {
+            fileList.add(files[i].getAbsolutePath());
+        }
+        pathToMyFile();
+        mFileAdapter.notifyDataSetChanged();
+    }
+
+    public void openParent(String parentPath) {
+        if (layer == 1)
+            super.onBackPressed();
+        else if (layer == 2){
+            updateMyFile();
+            layer--;
+        } else {
+            fileList.clear();
+            File file = new File(parentPath);
+            this.parentPath = file.getParent();  //记录parent路径
+            File[] files = file.listFiles();
+            for (int i=0; i<files.length; i++) {
+                fileList.add(files[i].getAbsolutePath());
+            }
+            pathToMyFile();
+            mFileAdapter.notifyDataSetChanged();
+            layer--;
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        openParent(parentPath);
+    }
+
 
 }
