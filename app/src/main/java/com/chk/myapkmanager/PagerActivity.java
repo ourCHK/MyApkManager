@@ -3,16 +3,20 @@ package com.chk.myapkmanager;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
+import android.view.ActionMode;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.Toast;
 
 import com.chk.myapkmanager.MyAdapter.MyPagerAdapter;
 import com.chk.myapkmanager.MyFragment.ApkFragment;
+import com.chk.myapkmanager.MyFragment.AppFragment;
 import com.chk.myapkmanager.MyFragment.FileFragment;
 
 import java.util.ArrayList;
@@ -25,6 +29,7 @@ public class PagerActivity extends AppCompatActivity {
     ArrayList<Fragment> mFragmentList;
     FileFragment mFileFragment;
     ApkFragment mApkFragment;
+    AppFragment mAppFragment;
     MyPagerAdapter mMyPagerAdapter;
 
     @Override
@@ -47,9 +52,11 @@ public class PagerActivity extends AppCompatActivity {
     public void dataInit() {
         mFileFragment = new FileFragment();
         mApkFragment = new ApkFragment();
+        mAppFragment = new AppFragment();
         mFragmentList = new ArrayList<>();
         mFragmentList.add(mFileFragment);
         mFragmentList.add(mApkFragment);
+        mFragmentList.add(mAppFragment);
         mMyPagerAdapter = new MyPagerAdapter(getSupportFragmentManager(),mFragmentList);
     }
 
@@ -97,4 +104,9 @@ public class PagerActivity extends AppCompatActivity {
         else
             super.onBackPressed();
     }
+
 }
+
+
+
+

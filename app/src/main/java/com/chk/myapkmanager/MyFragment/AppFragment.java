@@ -1,0 +1,198 @@
+package com.chk.myapkmanager.MyFragment;
+
+import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.CompoundButton;
+import android.widget.Toast;
+
+import com.chk.myapkmanager.Bean.MyApp;
+import com.chk.myapkmanager.MyAdapter.AppAdapter;
+import com.chk.myapkmanager.MyInterface.MyCheckedChangedListener;
+import com.chk.myapkmanager.MyInterface.MyItemClickListener;
+import com.chk.myapkmanager.MyInterface.MyItemLongClickListener;
+import com.chk.myapkmanager.PagerActivity;
+import com.chk.myapkmanager.R;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Created by chk on 17-11-22.
+ */
+
+public class AppFragment extends Fragment {
+
+    View mContentView;
+    Context mContext;
+
+    RecyclerView mAppRecyclerView;
+    AppAdapter mAppAdapter;
+
+    ArrayList<MyApp> mMyAppList;
+    ArrayList<MyApp> mPendingRemovedList;
+
+    android.view.ActionMode mActionMode;
+    boolean isInActionMode = false;
+
+    @Nullable
+    @Override
+    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        mContentView = inflater.from(getActivity()).inflate(R.layout.layout_fragment_app,container,false);
+        return mContentView;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        init();
+    }
+
+    void init() {
+        mContext = getContext();
+        dataInit();
+        viewInit();
+    }
+
+    void dataInit() {
+        mMyAppList = new ArrayList<>();
+        mPendingRemovedList = new ArrayList<>();
+        mAppAdapter = new AppAdapter(mMyAppList);
+        getInstalledPackage();
+    }
+
+    void viewInit() {
+        mAppRecyclerView = mContentView.findViewById(R.id.appRecyclerView);
+        mAppRecyclerView.setLayoutManager(new LinearLayoutManager(mContext));
+        mAppRecyclerView.setAdapter(mAppAdapter);
+        mAppAdapter.setItemClickListener(new MyItemClickListener() {
+            @Override
+            public void onClick(int position) {
+                if (isInActionMode) {
+
+                }
+            }
+        });
+
+        mAppAdapter.setItemLongClickListener(new MyItemLongClickListener() {
+            @Override
+            public void onLongClick(int position) {
+                if (!isInActionMode)
+                    ((PagerActivity) mContext).startActionMode(new MyCallback());
+            }
+        });
+
+        mAppAdapter.setMyCheckedChangedListener(new MyCheckedChangedListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked, int position) {
+                MyApp myApp = mMyAppList.get(position);
+                if (isChecked) {
+                    mMyAppList.get(position).setCheck(true);
+                    mPendingRemovedList.add(myApp);
+                } else {
+                    mMyAppList.get(position).setCheck(false);
+                    mPendingRemovedList.remove(myApp);
+                }
+            }
+        });
+
+
+        mAppAdapter.notifyDataSetChanged();
+    }
+
+    void getInstalledPackage() {
+        mMyAppList.clear();
+        PackageManager pm = mContext.getPackageManager();
+        List<PackageInfo> piList = pm.getInstalledPackages(0);
+        ArrayList<MyApp> tempUserList = new ArrayList<>();
+        ArrayList<MyApp> tempSystemList = new ArrayList<>();
+        for (PackageInfo pi:piList) {
+            ApplicationInfo appInfo = pi.applicationInfo;
+            MyApp myApp = new MyApp();
+            myApp.setAppName(pm.getApplicationLabel(appInfo).toString());
+            myApp.setPackageName(pi.packageName);
+            myApp.setVersion(pi.versionName);
+            myApp.setIcon(pm.getApplicationIcon(appInfo));
+            if ((pi.applicationInfo.flags & pi.applicationInfo.FLAG_SYSTEM) <= 0) { //第三方应用
+                myApp.setSystem(false);
+                tempUserList.add(myApp);
+            } else {    //系统预装应用
+                myApp.setSystem(true);
+                tempSystemList.add(myApp);
+            }
+        }
+        mMyAppList.addAll(tempUserList);
+        mMyAppList.addAll(tempSystemList);
+    }
+
+    public void exitActionMode() {
+        if (mActionMode != null) {
+            mActionMode.finish();
+            mActionMode = null;
+        }
+    }
+
+    @Override
+    public void setUserVisibleHint(boolean isVisibleToUser) {
+        super.setUserVisibleHint(isVisibleToUser);
+        if (!isVisibleToUser) {
+            exitActionMode();
+        }
+    }
+
+    @Override
+    public boolean getUserVisibleHint() {
+        return super.getUserVisibleHint();
+    }
+
+    private class MyCallback implements android.view.ActionMode.Callback {
+        @Override
+        public boolean onActionItemClicked(android.view.ActionMode mode, MenuItem item) {
+            switch (item.getItemId()) {
+                case R.id.delete:
+                    Toast.makeText(mContext, "de you want to delete the app??", Toast.LENGTH_SHORT).show();
+                    break;
+            }
+            return false;
+        }
+
+        @Override
+        public boolean onCreateActionMode(android.view.ActionMode mode, Menu menu) {
+            mode.getMenuInflater().inflate(R.menu.action_mode_menu,menu);
+            isInActionMode = true;
+            mActionMode = mode;
+            mAppAdapter.setInActionMode(true);
+            mAppAdapter.notifyDataSetChanged();
+            return true;
+        }
+
+        @Override
+        public boolean onPrepareActionMode(android.view.ActionMode mode, Menu menu) {
+            mPendingRemovedList.clear();
+            return false;
+        }
+
+        @Override
+        public void onDestroyActionMode(android.view.ActionMode mode) {
+            isInActionMode  = false;
+            mAppAdapter.setInActionMode(false);
+            for (MyApp myApp:mMyAppList) {
+                if (myApp.isCheck())
+                    myApp.setCheck(false);
+            }
+            mAppAdapter.notifyDataSetChanged();
+
+        }
+    }
+}

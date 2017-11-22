@@ -10,7 +10,6 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
 import com.chk.myapkmanager.Bean.MyFile;
 import com.chk.myapkmanager.MyAdapter.FileAdapter;
@@ -32,10 +31,8 @@ import static android.content.Context.STORAGE_SERVICE;
 public class FileFragment extends Fragment {
 
     View mContentView;
-    RecyclerView mRecyclerView;
+    RecyclerView mFileRecyclerView;
     FileAdapter mFileAdapter;
-
-
 
     /**
      * 层级，用于防止返回至根目录
@@ -87,9 +84,9 @@ public class FileFragment extends Fragment {
     }
 
     void viewInit() {
-        mRecyclerView = mContentView.findViewById(R.id.fileRecyclerView);
-        mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
-        mRecyclerView.setAdapter(mFileAdapter);
+        mFileRecyclerView = mContentView.findViewById(R.id.fileRecyclerView);
+        mFileRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+        mFileRecyclerView.setAdapter(mFileAdapter);
 
     }
 
