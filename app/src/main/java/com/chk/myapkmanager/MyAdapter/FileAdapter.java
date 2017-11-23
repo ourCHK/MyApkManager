@@ -59,15 +59,21 @@ public class FileAdapter extends RecyclerView.Adapter{
         MyFile myFile = mMyFileList.get(position);
         if (holder instanceof FolderHolder) {
             ((FolderHolder) holder).folderName.setText(myFile.getFileName());
-            ((FolderHolder) holder).itemView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    itemClickListener.onClick(position);
-                }
-            });
+//            ((FolderHolder) holder).itemView.setOnClickListener(new View.OnClickListener() {
+//                @Override
+//                public void onClick(View v) {
+//                    itemClickListener.onClick(position);
+//                }
+//            });
         } else if (holder instanceof FileHolder) {
             ((FileHolder) holder).fileName.setText(myFile.getFileName());
         }
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                itemClickListener.onClick(position);
+            }
+        });
     }
 
     public void setItemClickListener(MyItemClickListener itemClickListener) {

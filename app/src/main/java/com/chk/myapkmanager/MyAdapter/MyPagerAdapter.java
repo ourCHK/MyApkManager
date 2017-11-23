@@ -13,6 +13,7 @@ import java.util.ArrayList;
 public class MyPagerAdapter extends FragmentStatePagerAdapter{
 
     ArrayList<Fragment> mFragmentList;
+    String[] mTitle = new String[]{"File","Apk","App"};
 
     public MyPagerAdapter(FragmentManager fm, ArrayList<Fragment> mFragmentList) {
         super(fm);
@@ -27,5 +28,10 @@ public class MyPagerAdapter extends FragmentStatePagerAdapter{
     @Override
     public int getCount() {
         return mFragmentList.size();
+    }
+
+    @Override
+    public CharSequence getPageTitle(int position) {
+        return mTitle[position];
     }
 }

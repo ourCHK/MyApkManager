@@ -1,9 +1,13 @@
 package com.chk.myapkmanager.MyFragment;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -36,6 +40,7 @@ public class AppFragment extends Fragment {
 
     View mContentView;
     Context mContext;
+    PackageReceiver mPackageReceiver;
 
     RecyclerView mAppRecyclerView;
     AppAdapter mAppAdapter;
@@ -45,6 +50,19 @@ public class AppFragment extends Fragment {
 
     android.view.ActionMode mActionMode;
     boolean isInActionMode = false;
+
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        mContext = getContext();
+        mPackageReceiver = new PackageReceiver();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("android.intent.action.PACKAGE_ADDED");
+        filter.addAction("android.intent.action.PACKAGE_REMOVED");
+        filter.addDataScheme("package");
+        mContext.registerReceiver(mPackageReceiver,filter);
+    }
 
     @Nullable
     @Override
@@ -60,9 +78,10 @@ public class AppFragment extends Fragment {
     }
 
     void init() {
-        mContext = getContext();
+
         dataInit();
         viewInit();
+
     }
 
     void dataInit() {
@@ -107,7 +126,6 @@ public class AppFragment extends Fragment {
             }
         });
 
-
         mAppAdapter.notifyDataSetChanged();
     }
 
@@ -136,6 +154,19 @@ public class AppFragment extends Fragment {
         mMyAppList.addAll(tempSystemList);
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+    }
+
+    void uninstall(MyApp myApp) {
+        Intent uninstall_intent = new Intent();
+        uninstall_intent.setAction(Intent.ACTION_DELETE);
+        uninstall_intent.setData(Uri.parse("package:"+myApp.getPackageName()));
+        startActivity(uninstall_intent);
+    }
+
     public void exitActionMode() {
         if (mActionMode != null) {
             mActionMode.finish();
@@ -151,17 +182,19 @@ public class AppFragment extends Fragment {
         }
     }
 
-    @Override
-    public boolean getUserVisibleHint() {
-        return super.getUserVisibleHint();
-    }
 
     private class MyCallback implements android.view.ActionMode.Callback {
         @Override
         public boolean onActionItemClicked(android.view.ActionMode mode, MenuItem item) {
             switch (item.getItemId()) {
                 case R.id.delete:
-                    Toast.makeText(mContext, "de you want to delete the app??", Toast.LENGTH_SHORT).show();
+                    if (mPendingRemovedList.size() != 0) {
+                        for(MyApp myApp:mPendingRemovedList) {
+                            uninstall(myApp);
+                        }
+                        mode.finish();
+                    }
+//                    Toast.makeText(mContext, "de you want to delete the app??", Toast.LENGTH_SHORT).show();
                     break;
             }
             return false;
@@ -192,7 +225,22 @@ public class AppFragment extends Fragment {
                     myApp.setCheck(false);
             }
             mAppAdapter.notifyDataSetChanged();
+        }
+    }
 
+    private class PackageReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String packageName = intent.getDataString();
+            switch(intent.getAction()) {
+                case Intent.ACTION_PACKAGE_ADDED:
+                    Toast.makeText(context, packageName+" has been installed", Toast.LENGTH_SHORT).show();
+                    break;
+                case Intent.ACTION_PACKAGE_REMOVED:
+//                    Toast.makeText(context, packageName+" has been uninstalled", Toast.LENGTH_SHORT).show();
+
+                    break;
+            }
         }
     }
 }

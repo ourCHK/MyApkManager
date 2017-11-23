@@ -5,13 +5,11 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.ActionMode;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.widget.Toast;
 
 import com.chk.myapkmanager.MyAdapter.MyPagerAdapter;
@@ -26,6 +24,8 @@ public class PagerActivity extends AppCompatActivity {
     final static String TAG = "PAGER_ACTIVITY";
 
     ViewPager mViewPager;
+    TabLayout mTabLayout;
+
     ArrayList<Fragment> mFragmentList;
     FileFragment mFileFragment;
     ApkFragment mApkFragment;
@@ -63,6 +63,9 @@ public class PagerActivity extends AppCompatActivity {
     public void viewInit() {
         mViewPager = (ViewPager) findViewById(R.id.myViewPager);
         mViewPager.setAdapter(mMyPagerAdapter);
+
+        mTabLayout = (TabLayout) findViewById(R.id.tabLayout);
+        mTabLayout.setupWithViewPager(mViewPager);
     }
 
     public void requestPermission() {

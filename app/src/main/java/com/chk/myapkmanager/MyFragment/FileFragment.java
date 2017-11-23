@@ -1,10 +1,15 @@
 package com.chk.myapkmanager.MyFragment;
 
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.storage.StorageManager;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.content.FileProvider;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -31,6 +36,7 @@ import static android.content.Context.STORAGE_SERVICE;
 public class FileFragment extends Fragment {
 
     View mContentView;
+    Context mContext;
     RecyclerView mFileRecyclerView;
     FileAdapter mFileAdapter;
 
@@ -69,6 +75,7 @@ public class FileFragment extends Fragment {
     }
 
     void dataView() {
+        mContext = getContext();
         mMyFileList = new ArrayList<>();
         mFileList = new ArrayList<>();
         mRootPaths = new ArrayList<>();
@@ -77,7 +84,11 @@ public class FileFragment extends Fragment {
         mFileAdapter.setItemClickListener(new MyItemClickListener() {
             @Override
             public void onClick(int position) {
-                openFolder(mMyFileList.get(position).getOriginalName());
+                if (mMyFileList.get(position).isFolder())
+                    openFolder(mMyFileList.get(position).getOriginalName());
+                else if (mMyFileList.get(position).getFileName().contains(".apk")) {
+                    installApk(mMyFileList.get(position).getOriginalName());
+                }
             }
         });
 
@@ -181,8 +192,10 @@ public class FileFragment extends Fragment {
             File file = new File(parentPath);
             this.parentPath = file.getParent();  //记录parent路径
             File[] files = file.listFiles();
-            for (int i=0; i<files.length; i++) {
-                mFileList.add(files[i].getAbsolutePath());
+            if (files != null) {
+                for (int i=0; i<files.length; i++) {
+                    mFileList.add(files[i].getAbsolutePath());
+                }
             }
             pathToMyFile();
             mFileAdapter.notifyDataSetChanged();
@@ -198,5 +211,19 @@ public class FileFragment extends Fragment {
         getAllCardPath();
         pathToMyFile();
         mFileAdapter.notifyDataSetChanged();
+    }
+
+    public void installApk(String apkPath) {
+        File file = new File(apkPath);
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            Uri apkUri = FileProvider.getUriForFile(mContext,"com.chk.MyApkManager.FileProvider",file);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.setDataAndType(apkUri,"application/vnd.android.package-archive");
+        } else {
+            intent.setDataAndType(Uri.fromFile(file),"application/vnd.android.package-archive");
+        }
+        mContext.startActivity(intent);
     }
 }

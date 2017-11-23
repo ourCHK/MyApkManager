@@ -54,6 +54,7 @@ public class ApkFragment extends Fragment {
 
     RecyclerView mApkRecyclerView;
     ApkAdapter mApkAdapter;
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -122,8 +123,10 @@ public class ApkFragment extends Fragment {
             }
         } else if (file.isDirectory()) {
             File[] files = file.listFiles();
-            for(int i=0; i<files.length; i++) {
-                searchFile(files[i].getAbsolutePath(),keyword);
+            if (files != null) {
+                for(int i=0; i<files.length; i++) {
+                    searchFile(files[i].getAbsolutePath(),keyword);
+                }
             }
         }
     }
