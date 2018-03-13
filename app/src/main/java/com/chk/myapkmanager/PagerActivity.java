@@ -36,17 +36,8 @@ public class PagerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pager);
-        init();
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-    }
-
-    public void init() {
-        dataInit();
         viewInit();
+        requestPermission();
     }
 
     public void dataInit() {
@@ -58,11 +49,11 @@ public class PagerActivity extends AppCompatActivity {
         mFragmentList.add(mApkFragment);
         mFragmentList.add(mAppFragment);
         mMyPagerAdapter = new MyPagerAdapter(getSupportFragmentManager(),mFragmentList);
+        mViewPager.setAdapter(mMyPagerAdapter);
     }
 
     public void viewInit() {
         mViewPager = (ViewPager) findViewById(R.id.myViewPager);
-        mViewPager.setAdapter(mMyPagerAdapter);
 
         mTabLayout = (TabLayout) findViewById(R.id.tabLayout);
         mTabLayout.setupWithViewPager(mViewPager);
@@ -76,11 +67,13 @@ public class PagerActivity extends AppCompatActivity {
                 }
                 requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},1);
             } else {
-                mFileFragment.refreshView();
+//                mFileFragment.refreshView();
+                dataInit();
                 Log.i(TAG,"the permission has been granted");
             }
         } else {
-            mFileFragment.refreshView();
+//            mFileFragment.refreshView();
+            dataInit();
         }
     }
 
@@ -90,7 +83,8 @@ public class PagerActivity extends AppCompatActivity {
             case 1:
                 if (grantResults.length >0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    mFileFragment.refreshView();
+//                    mFileFragment.refreshView();
+                    dataInit();
                     Log.i(TAG,"permission granted successfully");
                 } else {
                     Toast.makeText(this, "sorry you do not have granted the permission to me ", Toast.LENGTH_SHORT).show();
@@ -102,8 +96,13 @@ public class PagerActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (mViewPager.getCurrentItem() == 0)
-            mFileFragment.openParent();
+        if (mViewPager.getCurrentItem() == 0) {
+            if (mFileFragment.isInActionMode()) {
+                super.onBackPressed();
+            } else {
+                mFileFragment.openParent();
+            }
+        }
         else
             super.onBackPressed();
     }

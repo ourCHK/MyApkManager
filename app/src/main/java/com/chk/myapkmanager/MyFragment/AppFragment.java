@@ -1,5 +1,6 @@
 package com.chk.myapkmanager.MyFragment;
 
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -9,16 +10,20 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CompoundButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.chk.myapkmanager.Bean.MyApp;
@@ -37,6 +42,12 @@ import java.util.List;
  */
 
 public class AppFragment extends Fragment {
+    final static String TAG = "AppFragment";
+    final static int SEARCH_APP_COMPLETED = 1;
+
+    TextView searchingApps;
+    Handler mHandler;
+    Thread mThread;
 
     View mContentView;
     Context mContext;
@@ -50,7 +61,13 @@ public class AppFragment extends Fragment {
 
     android.view.ActionMode mActionMode;
     boolean isInActionMode = false;
+    boolean isReView = false;
 
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        Log.i(TAG,"onAttach");
+    }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -62,6 +79,7 @@ public class AppFragment extends Fragment {
         filter.addAction("android.intent.action.PACKAGE_REMOVED");
         filter.addDataScheme("package");
         mContext.registerReceiver(mPackageReceiver,filter);
+        dataInit();
     }
 
     @Nullable
@@ -75,23 +93,43 @@ public class AppFragment extends Fragment {
     public void onStart() {
         super.onStart();
         init();
+        Log.i(TAG,"isReView" + isReView);
     }
 
+    @SuppressLint("HandlerLeak")
     void init() {
-
-        dataInit();
         viewInit();
 
+        mHandler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                switch(msg.what) {
+                    case SEARCH_APP_COMPLETED:
+                        searchAppCompleted();
+                        break;
+                }
+            }
+        };
+
+        mThread = new Thread(){
+            @Override
+            public void run() {
+                getInstalledPackage();
+                mHandler.sendEmptyMessage(SEARCH_APP_COMPLETED);
+            }
+        };
+        mThread.start();
     }
 
     void dataInit() {
         mMyAppList = new ArrayList<>();
         mPendingRemovedList = new ArrayList<>();
         mAppAdapter = new AppAdapter(mMyAppList);
-        getInstalledPackage();
+        Log.i("AppFragment","dataInit");
     }
 
     void viewInit() {
+        searchingApps = mContentView.findViewById(R.id.searchingApps);
         mAppRecyclerView = mContentView.findViewById(R.id.appRecyclerView);
         mAppRecyclerView.setLayoutManager(new LinearLayoutManager(mContext));
         mAppRecyclerView.setAdapter(mAppAdapter);
@@ -125,7 +163,6 @@ public class AppFragment extends Fragment {
                 }
             }
         });
-
         mAppAdapter.notifyDataSetChanged();
     }
 
@@ -155,9 +192,23 @@ public class AppFragment extends Fragment {
     }
 
     @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        isReView  = true;
+        Log.i(TAG,"OnDestoryView");
+    }
+
+    @Override
     public void onDestroy() {
         super.onDestroy();
+        Log.i(TAG,"OnDestory");
+        mContext.unregisterReceiver(mPackageReceiver);
+    }
 
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        Log.i(TAG,"OnDetach");
     }
 
     void uninstall(MyApp myApp) {
@@ -226,6 +277,11 @@ public class AppFragment extends Fragment {
             }
             mAppAdapter.notifyDataSetChanged();
         }
+    }
+
+    void searchAppCompleted() {
+        searchingApps.setVisibility(View.GONE);
+        mAppAdapter.notifyDataSetChanged();
     }
 
     private class PackageReceiver extends BroadcastReceiver {

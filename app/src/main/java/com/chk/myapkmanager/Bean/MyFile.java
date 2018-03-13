@@ -8,6 +8,7 @@ public class MyFile {
     String originalName;
     String fileName;
     boolean isFolder;
+    boolean isCheck;
 
     public String getFileName() {
         return fileName;
@@ -31,5 +32,13 @@ public class MyFile {
 
     public void setOriginalName(String originalName) {
         this.originalName = originalName;
+    }
+
+    public boolean isCheck() {
+        return isCheck;
+    }
+
+    public void setCheck(boolean check) {
+        isCheck = check;
     }
 }

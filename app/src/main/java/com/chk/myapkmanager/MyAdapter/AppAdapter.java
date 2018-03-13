@@ -100,7 +100,6 @@ public class AppAdapter extends RecyclerView.Adapter{
             else{
                 ((UserAppHolder) holder).checkApp.setVisibility(View.INVISIBLE);
             }
-
         }
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override

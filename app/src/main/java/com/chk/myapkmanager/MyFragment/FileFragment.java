@@ -12,13 +12,21 @@ import android.support.v4.app.Fragment;
 import android.support.v4.content.FileProvider;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.view.ActionMode;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CompoundButton;
+import android.widget.Toast;
 
+import com.chk.myapkmanager.Bean.MyApp;
 import com.chk.myapkmanager.Bean.MyFile;
 import com.chk.myapkmanager.MyAdapter.FileAdapter;
+import com.chk.myapkmanager.MyInterface.MyCheckedChangedListener;
 import com.chk.myapkmanager.MyInterface.MyItemClickListener;
+import com.chk.myapkmanager.MyInterface.MyItemLongClickListener;
 import com.chk.myapkmanager.PagerActivity;
 import com.chk.myapkmanager.R;
 
@@ -40,6 +48,10 @@ public class FileFragment extends Fragment {
     RecyclerView mFileRecyclerView;
     FileAdapter mFileAdapter;
 
+    ActionMode mActionMode;
+    boolean isInActionMode = false;
+    boolean isReView = false;
+
     /**
      * 层级，用于防止返回至根目录
      */
@@ -49,6 +61,7 @@ public class FileFragment extends Fragment {
     ArrayList<String> mFileList;
     ArrayList<String> mRootPaths;
 
+    ArrayList<MyFile> mPendingOperation;  //用于存储准备操作的MyFile;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -59,19 +72,19 @@ public class FileFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         mContentView = inflater.from(getActivity()).inflate(R.layout.layout_fragment_file,container,false);
-        init();
         return mContentView;
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        ((PagerActivity)getActivity()).requestPermission();
+        init();
     }
 
     void init() {
         dataView();
         viewInit();
+        refreshView();
     }
 
     void dataView() {
@@ -79,6 +92,7 @@ public class FileFragment extends Fragment {
         mMyFileList = new ArrayList<>();
         mFileList = new ArrayList<>();
         mRootPaths = new ArrayList<>();
+        mPendingOperation = new ArrayList<>();
 
         mFileAdapter = new FileAdapter(mMyFileList);
         mFileAdapter.setItemClickListener(new MyItemClickListener() {
@@ -92,6 +106,28 @@ public class FileFragment extends Fragment {
             }
         });
 
+        mFileAdapter.setItemLongClickListener(new MyItemLongClickListener() {
+            @Override
+            public void onLongClick(int position) {
+                if (!isInActionMode) {
+                    ((PagerActivity)mContext).startActionMode(new MyCallBack());
+                }
+            }
+        });
+
+        mFileAdapter.setMyCheckedChangedListener(new MyCheckedChangedListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked, int position) {
+                MyFile myFile = mMyFileList.get(position);
+                if (isChecked) {
+                    mMyFileList.get(position).setCheck(true);
+                    mPendingOperation.add(myFile);
+                } else {
+                    mMyFileList.get(position).setCheck(false);
+                    mPendingOperation.remove(myFile);
+                }
+            }
+        });
     }
 
     void viewInit() {
@@ -182,12 +218,12 @@ public class FileFragment extends Fragment {
      * 打开父路径，由Activity调用
      */
     public void openParent() {
-        if (layer == 1)
+        if (layer == 1) //根目录按返回键退出
             (getActivity()).finish();
-        else if (layer == 2){
+        else if (layer == 2){   //根目录下一级目录直接刷新至根目录
             refreshView();
             layer--;
-        } else {
+        } else {    //其他返回父目录
             mFileList.clear();
             File file = new File(parentPath);
             this.parentPath = file.getParent();  //记录parent路径
@@ -225,5 +261,69 @@ public class FileFragment extends Fragment {
             intent.setDataAndType(Uri.fromFile(file),"application/vnd.android.package-archive");
         }
         mContext.startActivity(intent);
+    }
+
+
+    @Override
+    public void setUserVisibleHint(boolean isVisibleToUser) {
+        super.setUserVisibleHint(isVisibleToUser);
+        if (!isVisibleToUser) {
+            exitActionMode();
+        }
+    }
+
+    public void exitActionMode() {
+        if (mActionMode != null) {
+            mActionMode.finish();
+            mActionMode = null;
+        }
+    }
+
+    /**
+     * 用于判断当前Fragment是否在ActionMode
+     * @return
+     */
+    public boolean isInActionMode() {
+        return isInActionMode;
+    }
+
+    private class MyCallBack implements ActionMode.Callback {
+        @Override
+        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+            mode.getMenuInflater().inflate(R.menu.action_mode_share,menu);
+            mActionMode = mode;
+            isInActionMode = true;
+            mFileAdapter.setInActionMode(true);
+            mFileAdapter.notifyDataSetChanged();
+            return true;
+        }
+
+        @Override
+        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+            mPendingOperation.clear();
+            return false;
+        }
+
+        @Override
+        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+            switch (item.getItemId()) {
+                case R.id.share:
+                    Toast.makeText(mContext, "you click the share button", Toast.LENGTH_SHORT).show();
+                    mode.finish();
+                    break;
+            }
+            return false;
+        }
+
+        @Override
+        public void onDestroyActionMode(ActionMode mode) {
+            isInActionMode  = false;
+            mFileAdapter.setInActionMode(false);
+            for (MyFile myFile:mMyFileList) {
+                if (myFile.isCheck())
+                    myFile.setCheck(false);
+            }
+            mFileAdapter.notifyDataSetChanged();
+        }
     }
 }

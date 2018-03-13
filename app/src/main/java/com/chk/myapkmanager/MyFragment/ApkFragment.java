@@ -1,17 +1,19 @@
 package com.chk.myapkmanager.MyFragment;
 
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
-import android.content.pm.PackageInstaller;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.os.storage.StorageManager;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -22,6 +24,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.chk.myapkmanager.Bean.MyApk;
@@ -42,18 +45,24 @@ import static android.content.Context.STORAGE_SERVICE;
 
 public class ApkFragment extends Fragment {
     final static String TAG = "ApkFragment";
+    final static int SEARCH_APK_COMPLETED = 1;
 
     Context mContext;
     PackageManager pm;
-    PackageInstaller pi;
+
+    TextView searchingApks;
+    Handler mHandler;
+    Thread mThread;
 
     View mContentView;
     ArrayList<String> mRootList;
     ArrayList<File> mApkFileList;
-    ArrayList<MyApk> mMyApkList;
 
+    ArrayList<MyApk> mMyApkList;
     RecyclerView mApkRecyclerView;
     ApkAdapter mApkAdapter;
+
+    boolean isFirstOpen = true;
 
     @Nullable
     @Override
@@ -65,17 +74,36 @@ public class ApkFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        init();
+        if (isFirstOpen) {
+            init();
+            isFirstOpen = false;
+        }
     }
 
+    @SuppressLint("HandlerLeak")
     void init() {
         dataInit();
         viewInit();
-        searchFile(mRootList.get(0),"apk");
-        for(File file: mApkFileList) {
-            Log.i("ApkFragment",file.getName());
-            apkInfo(file.getAbsolutePath(),mContext);
-        }
+
+        mThread = new Thread(){
+            @Override
+            public void run() {
+                searchFile(mRootList.get(0),"apk");
+                mHandler.sendEmptyMessage(SEARCH_APK_COMPLETED);
+            }
+        };
+
+        mHandler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                switch(msg.what) {
+                    case SEARCH_APK_COMPLETED:
+                        searchApkCompleted();
+                        break;
+                }
+            }
+        };
+        mThread.start();
     }
 
     void dataInit() {
@@ -86,10 +114,10 @@ public class ApkFragment extends Fragment {
         mMyApkList = new ArrayList<>();
         mApkAdapter = new ApkAdapter(mMyApkList);
         getAllCardPath();
-
     }
 
     void viewInit() {
+        searchingApks = mContentView.findViewById(R.id.searchingApks);
         mApkRecyclerView = mContentView.findViewById(R.id.apkRecyclerView);
         mApkRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
         mApkRecyclerView.setAdapter(mApkAdapter);
@@ -129,6 +157,14 @@ public class ApkFragment extends Fragment {
                 }
             }
         }
+    }
+
+    void searchApkCompleted() {
+        searchingApks.setVisibility(View.GONE);
+        for(File file: mApkFileList) {
+            apkInfo(file.getAbsolutePath(),mContext);
+        }
+        mApkAdapter.notifyDataSetChanged();
     }
 
     /**
